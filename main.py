@@ -80,7 +80,7 @@ def send_message(room_id, key, token, parameters=[]):
         "widgets": [
             {
                 "decoratedText": {
-                    "text": f"{parameters['REPOSITORY']}",
+                    "text": f"{parameters['REPO']}",
                     "button": {
                         "text": "VIEW",
                         "onClick": {
