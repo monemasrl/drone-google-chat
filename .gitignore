@@ -1,0 +1,10 @@
+.vscode
+.DS_Store
+archive
+data
+reports
+.coverage
+*.txt
+!requirements.txt
+output.json
+pytest_html_report.html
