@@ -46,7 +46,7 @@ def send_message(room_id, key, token, message, parameters=[]):
                 "card": {
                     "header": {
                         "title": f"Build #{parameters['BUILD_NUMBER']}",
-                        "subtitle": f"{parameters['BUILD_COMMIT_MESSAGE']}",
+                        "subtitle": f"{parameters['COMMIT_MESSAGE']}",
                         "imageUrl": "https://styles.redditmedia.com/t5_jt7nk/styles/communityIcon_62qfghr0oq931.png",
                         "imageType": "CIRCLE",
                         "imageAltText": "Drone CI",
