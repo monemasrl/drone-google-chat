@@ -1,93 +1,132 @@
 import os
 import requests
 import json
+import uuid
+import hashlib
 
 from pprint import pformat
 
 
-# https://chat.googleapis.com/v1/spaces/AAAA5Y3zyRw/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=EcQCJrOi_CImQZFWNqBRplNjtlZPxQMYf87R861nVX0
-def send_message(room_id, key, token, message, parameters=[]):
-    """
-    Invia un messaggio ad una chat room Google attraverso webhook.
+def send_message(room_id, key, token, parameters=[]):
+    threadKey = hashlib.md5(
+        f"{parameters['REPOSITORY']}:{parameters['BRANCH']}".encode("utf-8")
+    ).hexdigest()
 
-    Args:
-      room_id: L'ID della chat room.
-      key: La chiave di accesso.
-      token: Il token di accesso.
-      message: Il messaggio da inviare.
-
-    Returns:
-      Il codice di risposta HTTP.
-    """
-
-    url = "https://chat.googleapis.com/v1/spaces/{}/messages?key={}&token={}".format(
-        room_id, key, token
+    url = "https://chat.googleapis.com/v1/spaces/{}/messages?key={}&token={}&threadKey={}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD".format(
+        room_id, key, token, threadKey
     )
-    url = "https://chat.googleapis.com/v1/spaces/AAAA5Y3zyRw/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=EcQCJrOi_CImQZFWNqBRplNjtlZPxQMYf87R861nVX0"
     headers = {"Content-Type": "application/json; charset=UTF-8"}
 
-    widgets = [
+    buildWidgets = [
         {
             "decoratedText": {
-                "startIcon": {
-                    "iconUrl": "https://raster.shields.io/badge/Build-Success-green",
-                },
-                "text": "Build Status",
+                "topLabel": "Branch",
+                "text": f"{parameters['BRANCH']}",
+            }
+        },
+    ]
+
+    buildWidgets.append(
+        {
+            "columns": {
+                "columnItems": [
+                    {
+                        "widgets": [
+                            {
+                                "decoratedText": {
+                                    "topLabel": "Status",
+                                    "text": parameters["BUILD_STATUS"],
+                                }
+                            },
+                            {
+                                "decoratedText": {
+                                    "topLabel": "Author",
+                                    "text": parameters["COMMIT_AUTHOR"],
+                                }
+                            },
+                        ]
+                    },
+                    {
+                        "widgets": [
+                            {
+                                "decoratedText": {
+                                    "topLabel": "Duration",
+                                    "text": f"{int(parameters['BUILD_FINISHED']) - int(parameters['BUILD_STARTED'])}s",
+                                }
+                            },
+                            {
+                                "decoratedText": {
+                                    "topLabel": "Commit",
+                                    "text": f"<a href='{parameters['COMMIT_LINK']}'>{parameters['COMMIT_SHA'][:7]}</a>",
+                                }
+                            },
+                        ]
+                    },
+                ]
             }
         }
-    ]
-    for key, value in parameters.items():
-        widgets.append({"textParagraph": {"text": f"{key}: {value}"}})
+    )
+
+    sections = []
+    buildSection = {
+        "header": "Build Info",
+        "collapsible": False,
+        "widgets": buildWidgets,
+    }
+    sections.append(buildSection)
+    repositorySection = {
+        "header": "REPOSITORY",
+        "collapsible": False,
+        "widgets": [
+            {
+                "decoratedText": {
+                    "text": f"{parameters['REPOSITORY']}",
+                    "button": {
+                        "text": "VIEW",
+                        "onClick": {
+                            "openLink": {
+                                "url": f"{parameters['REPO_LINK']}",
+                            }
+                        },
+                    },
+                }
+            },
+        ],
+    }
+    sections.append(repositorySection)
 
     card = {
         "cardsV2": [
             {
-                "cardId": "unique-card-id",
+                "cardId": uuid.uuid4().hex,
                 "card": {
                     "header": {
-                        "title": f"Build #{parameters['BUILD_NUMBER']}",
+                        "title": f"Build #<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_NUMBER']}</a> ({parameters['BRANCH']})",
                         "subtitle": f"{parameters['COMMIT_MESSAGE']}",
                         "imageUrl": "https://styles.redditmedia.com/t5_jt7nk/styles/communityIcon_62qfghr0oq931.png",
                         "imageType": "CIRCLE",
                         "imageAltText": "Drone CI",
                     },
-                    "sections": [
-                        {
-                            "header": "Build Info",
-                            "collapsible": True,
-                            "uncollapsibleWidgetsCount": 1,
-                            "widgets": widgets,
-                        },
-                    ],
+                    "sections": sections,
                 },
             }
         ],
     }
 
-    print(pformat(card))
-    data = {"text": message}
-
     response = requests.post(url, headers=headers, data=json.dumps(card))
-    return response.json()
+    return response
 
 
 if __name__ == "__main__":
     # Sostituisci con l'ID della tua chat room.
     room_id = os.environ.get("GOOGLE_CHAT_ID")
-    key = os.environ.get("GOOGLE_KEY")
-    token = os.environ.get("GOOGLE_TOKEN")
+    google_key = os.environ.get("GOOGLE_KEY")
+    google_token = os.environ.get("GOOGLE_TOKEN")
     variables = {}
     prefix: str = "DRONE_"
     for key, value in os.environ.items():
         if key[: len(prefix)] == prefix:
             variables[key[len(prefix) :]] = value
 
-    print(pformat(variables))
-    # Sostituisci con il messaggio che vuoi inviare.
-    message = "Ciao mondo!"
-
     # Invia il messaggio.
-    response = send_message(room_id, key, token, message, parameters=variables)
-
-    # Stampa il codice di risposta HTTP.
-    print(pformat(response))
+    response = send_message(room_id, google_key, google_token, parameters=variables)
