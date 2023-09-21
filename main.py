@@ -9,7 +9,7 @@ from pprint import pformat
 
 def send_message(room_id, key, token, parameters=[]):
     threadKey = hashlib.md5(
-        f"{parameters['REPOSITORY']}:{parameters['BRANCH']}".encode("utf-8")
+        f"{parameters['REPO']}:{parameters['BRANCH']}".encode("utf-8")
     ).hexdigest()
 
     url = "https://chat.googleapis.com/v1/spaces/{}/messages?key={}&token={}&threadKey={}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD".format(
