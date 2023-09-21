@@ -3,6 +3,7 @@ import requests
 import json
 import uuid
 import hashlib
+import datetime as dt
 
 from pprint import pformat
 
@@ -25,6 +26,10 @@ def send_message(room_id, key, token, parameters=[]):
             }
         },
     ]
+
+    formattedTime = dt.timedelta(
+        seconds=int(parameters["STAGE_FINISHED"]) - int(parameters["STAGE_STARTED"])
+    )
 
     buildWidgets.append(
         {
@@ -51,7 +56,7 @@ def send_message(room_id, key, token, parameters=[]):
                             {
                                 "decoratedText": {
                                     "topLabel": "Duration",
-                                    "text": f"{int(parameters['BUILD_FINISHED']) - int(parameters['BUILD_STARTED'])}s",
+                                    "text": f"{formattedTime}",
                                 }
                             },
                             {
