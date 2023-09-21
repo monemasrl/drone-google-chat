@@ -128,5 +128,8 @@ if __name__ == "__main__":
         if key[: len(prefix)] == prefix:
             variables[key[len(prefix) :]] = value
 
+    if variables["BUILD_DEBUG"] == "true":
+        for key, value in variables.items():
+            print(f"{key}: {value}")
     # Invia il messaggio.
     response = send_message(room_id, google_key, google_token, parameters=variables)
