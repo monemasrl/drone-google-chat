@@ -18,17 +18,18 @@ def send_message(room_id, key, token, parameters=[]):
     )
     headers = {"Content-Type": "application/json; charset=UTF-8"}
 
-    buildWidgets = [
-        {
-            "decoratedText": {
-                "topLabel": "Branch",
-                "text": f"{parameters['BRANCH']}",
-            }
-        },
-    ]
+    if "FAILED_STAGES" in parameters:
+        buildWidgets = [
+            {
+                "decoratedText": {
+                    "topLabel": "Failed Stages",
+                    "text": f"{parameters['FAILED_STAGES']}",
+                }
+            },
+        ]
 
     formattedTime = dt.timedelta(
-        seconds=int(parameters["STAGE_FINISHED"]) - int(parameters["STAGE_STARTED"])
+        seconds=int(parameters["BUILD_FINISHED"]) - int(parameters["BUILD_CREATED"])
     )
 
     buildWidgets.append(
