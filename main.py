@@ -141,7 +141,7 @@ def send_message(room_id, key, token, use_thread, parameters=[]):
         title = f"Deployed {parameters['REPO_NAME']}#<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_PARENT']}</a> to {parameters['DEPLOY_TO'].upper()}"
         subtitle = f"Triggered by {parameters['BUILD_TRIGGER']}"
     else:
-        title = f"Build #<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_NUMBER']}</a> ({parameters['BRANCH']}) - {parameters['BUILD_EVENT']}"
+        title = f"Build #<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_NUMBER']}</a> ({parameters['BRANCH']})"
         subtitle = f"{parameters['COMMIT_MESSAGE']}"
 
     card = {
