@@ -8,13 +8,17 @@ import datetime as dt
 from pprint import pformat
 
 
-def send_message(room_id, key, token, parameters=[]):
+def send_message(room_id, key, token, use_thread, parameters=[]):
     threadKey = hashlib.md5(
         f"{parameters['REPO']}:{parameters['BRANCH']}".encode("utf-8")
     ).hexdigest()
 
-    url = "https://chat.googleapis.com/v1/spaces/{}/messages?key={}&token={}&threadKey={}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD".format(
-        room_id, key, token, threadKey
+    if use_thread == "true":
+        thread_option = "REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
+    else:
+        thread_option = "MESSAGE_REPLY_OPTION_UNSPECIFIED"
+    url = "https://chat.googleapis.com/v1/spaces/{}/messages?key={}&token={}&threadKey={}&messageReplyOption={}".format(
+        room_id, key, token, threadKey, thread_option
     )
     headers = {"Content-Type": "application/json; charset=UTF-8"}
 
@@ -170,6 +174,7 @@ if __name__ == "__main__":
     room_id = os.environ.get("GOOGLE_CHAT_ID")
     google_key = os.environ.get("GOOGLE_KEY")
     google_token = os.environ.get("GOOGLE_TOKEN")
+    google_thread = os.environ.get("GOOGLE_THREAD", default="false")
     variables = {}
     prefix: str = "DRONE_"
     for key, value in os.environ.items():
@@ -180,7 +185,9 @@ if __name__ == "__main__":
         for key, value in variables.items():
             print(f"{key}: {value}")
     # Invia il messaggio.
-    response = send_message(room_id, google_key, google_token, parameters=variables)
+    response = send_message(
+        room_id, google_key, google_token, google_thread, parameters=variables
+    )
 
     if variables["BUILD_DEBUG"] == "true":
         print(f"Status code: {response.status_code}")
