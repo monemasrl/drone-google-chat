@@ -18,22 +18,38 @@ def send_message(room_id, key, token, parameters=[]):
     )
     headers = {"Content-Type": "application/json; charset=UTF-8"}
 
-    failedStages = "-"
+    buildWidgets = []
+
     if "FAILED_STAGES" in parameters:
         failedStages = parameters["FAILED_STAGES"]
+        buildWidgets.append(
+            {
+                "decoratedText": {
+                    "topLabel": "Failed Stages",
+                    "text": f"{failedStages}",
+                }
+            }
+        )
 
-    buildWidgets = [
+    buildWidgets.append(
         {
             "decoratedText": {
-                "topLabel": "Failed Stages",
-                "text": f"{failedStages}",
+                "topLabel": "Trigger event",
+                "text": f"{parameters['BUILD_EVENT'].upper()}",
             }
         },
-    ]
+    )
 
     formattedTime = dt.timedelta(
         seconds=int(parameters["BUILD_FINISHED"]) - int(parameters["BUILD_CREATED"])
     )
+
+    if parameters["BUILD_STATUS"] == "success":
+        status = "<span style='background-color: #green'><font color=\"#00ff00\">SUCCESS</font></span>"
+        color = {"red": 0, "green": 1, "blue": 0, "alpha": 1}
+    else:
+        status = '<font color="#ff0000">FAILED</font>'
+        color = {"red": 1, "green": 0, "blue": 0, "alpha": 1}
 
     buildWidgets.append(
         {
@@ -44,7 +60,15 @@ def send_message(room_id, key, token, parameters=[]):
                             {
                                 "decoratedText": {
                                     "topLabel": "Status",
-                                    "text": parameters["BUILD_STATUS"],
+                                    "button": {
+                                        "text": status,
+                                        "color": color,
+                                        "onClick": {
+                                            "openLink": {
+                                                "url": f"{parameters['BUILD_LINK']}",
+                                            }
+                                        },
+                                    },
                                 }
                             },
                             {
@@ -77,8 +101,13 @@ def send_message(room_id, key, token, parameters=[]):
     )
 
     sections = []
+    if "DEPLOY_TO" in parameters:
+        header = "Deployment Info"
+    else:
+        header = "Build Info"
+
     buildSection = {
-        "header": "Build Info",
+        "header": header,
         "collapsible": False,
         "widgets": buildWidgets,
     }
@@ -104,14 +133,21 @@ def send_message(room_id, key, token, parameters=[]):
     }
     sections.append(repositorySection)
 
+    if "DEPLOY_TO" in parameters:
+        title = f"Deployed {parameters['REPO_NAME']}#<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_PARENT']}</a> to {parameters['DEPLOY_TO'].upper()}"
+        subtitle = f"Triggered by {parameters['BUILD_TRIGGER']}"
+    else:
+        title = f"Build #<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_NUMBER']}</a> ({parameters['BRANCH']}) - {parameters['BUILD_EVENT']}"
+        subtitle = f"{parameters['COMMIT_MESSAGE']}"
+
     card = {
         "cardsV2": [
             {
                 "cardId": uuid.uuid4().hex,
                 "card": {
                     "header": {
-                        "title": f"Build #<a href='{parameters['BUILD_LINK']}'>{parameters['BUILD_NUMBER']}</a> ({parameters['BRANCH']})",
-                        "subtitle": f"{parameters['COMMIT_MESSAGE']}",
+                        "title": title,
+                        "subtitle": subtitle,
                         "imageUrl": "https://styles.redditmedia.com/t5_jt7nk/styles/communityIcon_62qfghr0oq931.png",
                         "imageType": "CIRCLE",
                         "imageAltText": "Drone CI",
@@ -122,6 +158,9 @@ def send_message(room_id, key, token, parameters=[]):
         ],
     }
 
+    if parameters["BUILD_DEBUG"] == "true":
+        print(f"Sending message to {room_id}")
+        print(f"Message: {pformat(card)}")
     response = requests.post(url, headers=headers, data=json.dumps(card))
     return response
 
@@ -142,3 +181,7 @@ if __name__ == "__main__":
             print(f"{key}: {value}")
     # Invia il messaggio.
     response = send_message(room_id, google_key, google_token, parameters=variables)
+
+    if variables["BUILD_DEBUG"] == "true":
+        print(f"Status code: {response.status_code}")
+        print(f"Response: {pformat(response.json())}")
